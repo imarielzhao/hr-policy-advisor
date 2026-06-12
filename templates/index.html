@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI政策顾问 · 星辰科技</title>
+<style>
+/* ─── Design tokens ─────────────────────────────── */
+:root {
+  --brand:        #1B4FD8;
+  --brand-mid:    #2563EB;
+  --brand-light:  #EFF6FF;
+  --brand-dim:    #DBEAFE;
+  --accent:       #0EA5E9;
+  --surface:      #FFFFFF;
+  --bg:           #F1F5F9;
+  --border:       #E2E8F0;
+  --text:         #0F172A;
+  --text-2:       #475569;
+  --text-3:       #94A3B8;
+  --ok:           #059669;
+  --ok-bg:        #ECFDF5;
+  --warn:         #D97706;
+  --warn-bg:      #FFFBEB;
+  --radius-sm:    6px;
+  --radius:       12px;
+  --radius-lg:    16px;
+  --shadow-sm:    0 1px 2px rgba(0,0,0,.06);
+  --shadow:       0 2px 8px rgba(0,0,0,.08);
+  --shadow-lg:    0 4px 20px rgba(0,0,0,.10);
+  --font:         -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --mono:         "SF Mono","Fira Code",Consolas,monospace;
+  --chat-max:     680px;
+}
+
+/* ─── Reset ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;flex-direction:column;font-size:14px;line-height:1.6}
+
+/* ─── Header ────────────────────────────────────── */
+.header{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 20px;
+  height:54px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:var(--shadow-sm);
+  flex-shrink:0;
+  z-index:20;
+}
+.header-logo{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,var(--brand),var(--accent));
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:16px;flex-shrink:0;
+}
+.header-title{font-size:15px;font-weight:600;letter-spacing:-.2px}
+.header-sub{font-size:12px;color:var(--text-3);margin-top:1px}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.status-dot{
+  width:7px;height:7px;border-radius:50%;background:#22C55E;
+  box-shadow:0 0 0 2px rgba(34,197,94,.2);
+}
+.status-label{font-size:12px;color:var(--text-2)}
+.kb-badge{
+  font-size:11px;padding:3px 9px;
+  background:var(--brand-light);color:var(--brand);
+  border-radius:20px;font-weight:500;letter-spacing:.2px;
+}
+
+/* ─── Layout ────────────────────────────────────── */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* ─── Sidebar ───────────────────────────────────── */
+.sidebar{
+  width:220px;flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.sidebar-section{padding:14px 12px 8px;flex-shrink:0}
+.sidebar-section-title{
+  font-size:10px;font-weight:600;
+  color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.8px;
+  margin-bottom:8px;padding:0 4px;
+}
+.cat-list{display:flex;flex-direction:column;gap:1px}
+.cat-item{
+  padding:7px 10px;border-radius:var(--radius-sm);
+  cursor:pointer;font-size:13px;color:var(--text-2);
+  display:flex;align-items:center;gap:8px;
+  transition:background .15s,color .15s;
+  user-select:none;
+}
+.cat-item:hover{background:var(--brand-light);color:var(--brand)}
+.cat-item .cat-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center}
+
+.divider{height:1px;background:var(--border);margin:6px 12px}
+
+.quick-section{padding:8px 12px;flex:1;overflow-y:auto}
+.quick-list{display:flex;flex-direction:column;gap:4px}
+.quick-item{
+  padding:7px 10px;border-radius:var(--radius-sm);
+  cursor:pointer;font-size:12px;color:var(--text-2);
+  background:var(--bg);border:1px solid var(--border);
+  transition:all .15s;line-height:1.4;
+}
+.quick-item:hover{border-color:var(--brand-mid);color:var(--brand);background:var(--brand-light)}
+
+.sidebar-footer{
+  padding:10px 12px;border-top:1px solid var(--border);
+  font-size:11px;color:var(--text-3);flex-shrink:0;
+}
+.sidebar-footer a{color:var(--brand);text-decoration:none}
+
+/* ─── Chat area ─────────────────────────────────── */
+.chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+
+.messages{
+  flex:1;overflow-y:auto;
+  padding:20px;
+  display:flex;flex-direction:column;gap:16px;
+  scroll-behavior:smooth;
+}
+.messages::-webkit-scrollbar{width:4px}
+.messages::-webkit-scrollbar-track{background:transparent}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ─── Message bubbles ───────────────────────────── */
+.msg-row{display:flex;gap:10px;max-width:var(--chat-max);animation:fadeUp .22s ease}
+.msg-row.user{align-self:flex-end;flex-direction:row-reverse}
+.msg-row.bot{align-self:flex-start}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.msg-avatar{
+  width:30px;height:30px;border-radius:50%;
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:14px;margin-top:2px;
+}
+.msg-row.bot .msg-avatar{background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff}
+.msg-row.user .msg-avatar{background:var(--border);color:var(--text-2);font-size:12px;font-weight:600}
+
+.msg-content{display:flex;flex-direction:column;gap:3px;max-width:calc(var(--chat-max) - 50px)}
+
+.bubble{
+  padding:11px 14px;border-radius:var(--radius);
+  font-size:14px;line-height:1.65;word-break:break-word;
+}
+.msg-row.user .bubble{
+  background:var(--brand);color:#fff;
+  border-bottom-right-radius:4px;
+}
+.msg-row.bot .bubble{
+  background:var(--surface);color:var(--text);
+  border:1px solid var(--border);
+  border-bottom-left-radius:4px;
+  box-shadow:var(--shadow-sm);
+}
+.bubble.not-found{
+  border-color:#FCA5A5;background:#FFF5F5;
+}
+
+/* policy citation */
+.policy-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  margin-top:8px;padding:4px 9px;
+  background:var(--brand-light);color:var(--brand);
+  border-radius:4px;font-size:11px;font-weight:500;
+  border-left:2px solid var(--brand);
+}
+.policy-tag svg{flex-shrink:0}
+
+/* markdown-lite inside bubble */
+.bubble strong{font-weight:600}
+.bubble em{font-style:italic}
+.bubble code{font-family:var(--mono);font-size:12px;background:var(--bg);padding:1px 4px;border-radius:3px}
+.bubble blockquote{
+  border-left:3px solid var(--brand-dim);
+  padding:6px 10px;margin:8px 0;
+  background:var(--brand-light);border-radius:0 4px 4px 0;
+  font-size:13px;color:var(--text-2);
+}
+
+.msg-time{font-size:11px;color:var(--text-3);padding:0 2px}
+
+/* ─── Typing indicator ──────────────────────────── */
+.typing-dots{display:flex;align-items:center;gap:4px;padding:4px 2px}
+.typing-dots span{
+  width:6px;height:6px;border-radius:50%;background:var(--text-3);
+  animation:bounce .9s ease infinite;
+}
+.typing-dots span:nth-child(2){animation-delay:.15s}
+.typing-dots span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+
+/* ─── Welcome card ──────────────────────────────── */
+.welcome{
+  max-width:var(--chat-max);align-self:center;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:22px 24px;
+  box-shadow:var(--shadow);margin-top:8px;
+}
+.welcome-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.welcome-icon{font-size:22px}
+.welcome-title{font-size:16px;font-weight:600}
+.welcome-desc{font-size:13px;color:var(--text-2);line-height:1.6}
+.welcome-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.chip{
+  padding:5px 11px;border-radius:20px;
+  background:var(--brand-light);color:var(--brand);
+  font-size:12px;font-weight:500;cursor:pointer;border:none;
+  transition:background .15s,transform .1s;
+}
+.chip:hover{background:var(--brand-dim);transform:translateY(-1px)}
+.chip:active{transform:translateY(0)}
+
+/* ─── Input area ────────────────────────────────── */
+.input-wrap{
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:12px 16px;flex-shrink:0;
+}
+.input-inner{
+  max-width:var(--chat-max);margin:0 auto;
+  display:flex;gap:8px;align-items:flex-end;
+}
+.input-box{
+  flex:1;
+  border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:9px 13px;font-size:14px;font-family:var(--font);
+  color:var(--text);background:var(--surface);
+  resize:none;outline:none;line-height:1.5;
+  max-height:120px;min-height:40px;
+  transition:border-color .15s;
+}
+.input-box:focus{border-color:var(--brand)}
+.input-box::placeholder{color:var(--text-3)}
+.send-btn{
+  width:38px;height:38px;border-radius:var(--radius-sm);
+  background:var(--brand);border:none;color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s,transform .1s;flex-shrink:0;
+}
+.send-btn:hover:not(:disabled){background:var(--brand-mid);transform:translateY(-1px)}
+.send-btn:active{transform:translateY(0)}
+.send-btn:disabled{background:var(--border);cursor:not-allowed;transform:none}
+.input-hint{font-size:11px;color:var(--text-3);margin-top:6px;text-align:center}
+
+/* ─── Responsive ────────────────────────────────── */
+@media(max-width:700px){
+  .sidebar{display:none}
+  .header-sub{display:none}
+}
+@media(max-width:480px){
+  .messages{padding:12px}
+  .input-wrap{padding:10px 12px}
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-logo">⭐</div>
+  <div>
+    <div class="header-title">AI政策顾问</div>
+    <div class="header-sub">星辰科技（上海）有限公司</div>
+  </div>
+  <div class="header-right">
+    <span class="status-dot"></span>
+    <span class="status-label" id="statusLabel">服务正常</span>
+    <span class="kb-badge" id="kbBadge">加载中...</span>
+  </div>
+</header>
+
+<!-- Layout -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">政策分类</div>
+      <div class="cat-list" id="catList"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="quick-section">
+      <div class="sidebar-section-title">常见问题</div>
+      <div class="quick-list" id="quickList"></div>
+    </div>
+    <div class="sidebar-footer">
+      如需人工协助，请联系<br>
+      <a href="mailto:hr@starrytech.com">hr@starrytech.com</a> / 分机8002
+    </div>
+  </aside>
+
+  <!-- Chat -->
+  <main class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome">
+        <div class="welcome-header">
+          <span class="welcome-icon">🤖</span>
+          <span class="welcome-title">您好，我是星辰科技AI政策顾问</span>
+        </div>
+        <div class="welcome-desc">
+          我可以帮您快速查询公司HR政策，包括考勤休假、薪酬福利、绩效考核、入职离职等内容。<br>
+          所有回答均以员工手册 V4.0 为依据，并注明具体条款。
+        </div>
+        <div class="welcome-chips">
+          <button class="chip" onclick="sendQuick('年假有多少天？')">📅 年假天数</button>
+          <button class="chip" onclick="sendQuick('加班费怎么计算？')">⏰ 加班补偿</button>
+          <button class="chip" onclick="sendQuick('试用期工资是多少？')">📋 试用期薪资</button>
+          <button class="chip" onclick="sendQuick('绩效考核等级怎么划分？')">📊 绩效等级</button>
+          <button class="chip" onclick="sendQuick('离职需要提前多久通知？')">🚪 离职流程</button>
+          <button class="chip" onclick="sendQuick('公司有哪些新增福利？')">🎁 新增福利</button>
+        </div>
+      </div>
+    </div>
+    <div class="input-wrap">
+      <div class="input-inner">
+        <textarea class="input-box" id="inputBox" placeholder="输入您的HR政策问题，如：产假有多少天？" rows="1"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="发送">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hint">基于星辰科技员工手册 V4.0 · 知识库外问题将提示联系HR</div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+// ── 分类图标映射 ─────────────────────────────────────
+const CAT_ICONS = {
+  '考勤管理':'🕘','休假管理':'📅','薪酬福利':'💰','绩效管理':'📊',
+  '培训发展':'🎓','行为规范':'📋','入职指南':'🚀','离职管理':'🚪',
+  '健康关怀':'💊','AI数字化':'🤖','企业文化':'⭐',
+};
+
+// 常见问题列表
+const QUICK_QS = [
+  '公司上班时间是什么时候？',
+  '迟到怎么处理？',
+  '年假有多少天？',
+  '加班费怎么算？',
+  '五险一金缴纳比例？',
+  '试用期多久？薪资是多少？',
+  '绩效等级和系数是什么？',
+  '年终奖怎么计算？',
+  '离职需要提前多久通知？',
+  'AI工具使用有什么规定？',
+];
+
+// ── 初始化 ───────────────────────────────────────────
+let isLoading = false;
+
+async function init() {
+  try {
+    const [cats, knowledge, health] = await Promise.all([
+      fetch('/api/categories').then(r=>r.json()),
+      fetch('/api/knowledge').then(r=>r.json()),
+      fetch('/health').then(r=>r.json()),
+    ]);
+
+    // 更新状态
+    document.getElementById('kbBadge').textContent = `${health.knowledge_count} 条政策`;
+
+    // 渲染分类
+    const catList = document.getElementById('catList');
+    cats.forEach(cat => {
+      const el = document.createElement('div');
+      el.className = 'cat-item';
+      el.innerHTML = `<span class="cat-icon">${CAT_ICONS[cat]||'📌'}</span><span>${cat}</span>`;
+      el.onclick = () => {
+        document.getElementById('inputBox').value = `请介绍一下${cat}相关政策`;
+        document.getElementById('inputBox').focus();
+      };
+      catList.appendChild(el);
+    });
+
+    // 渲染常见问题
+    const quickList = document.getElementById('quickList');
+    QUICK_QS.forEach(q => {
+      const el = document.createElement('div');
+      el.className = 'quick-item';
+      el.textContent = q;
+      el.onclick = () => sendQuick(q);
+      quickList.appendChild(el);
+    });
+
+  } catch(e) {
+    document.getElementById('statusLabel').textContent = '连接异常';
+    document.getElementById('statusLabel').style.color = '#EF4444';
+    document.querySelector('.status-dot').style.background = '#EF4444';
+  }
+}
+
+// ── 发送消息 ─────────────────────────────────────────
+function sendQuick(text) {
+  document.getElementById('inputBox').value = text;
+  sendMessage();
+}
+
+async function sendMessage() {
+  if (isLoading) return;
+  const box = document.getElementById('inputBox');
+  const text = box.value.trim();
+  if (!text) return;
+
+  box.value = '';
+  autoResize(box);
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  appendMsg('user', text);
+  const typingId = appendTyping();
+
+  try {
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({question: text}),
+    });
+    const data = await res.json();
+    removeTyping(typingId);
+    appendBotMsg(data);
+  } catch(e) {
+    removeTyping(typingId);
+    appendBotMsg({
+      found: false,
+      answer: '网络请求失败，请稍后再试。',
+      policy: '',
+    });
+  } finally {
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+    box.focus();
+  }
+}
+
+// ── 消息渲染 ─────────────────────────────────────────
+function appendMsg(role, text) {
+  const msgs = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = role === 'bot' ? '✦' : '我';
+
+  const content = document.createElement('div');
+  content.className = 'msg-content';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = role === 'bot' ? renderMarkdown(text) : escHtml(text);
+
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = now();
+
+  content.appendChild(bubble);
+  content.appendChild(time);
+  row.appendChild(avatar);
+  row.appendChild(content);
+  msgs.appendChild(row);
+  scrollBottom();
+  return row;
+}
+
+function appendBotMsg(data) {
+  const msgs = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = 'msg-row bot';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = '✦';
+
+  const content = document.createElement('div');
+  content.className = 'msg-content';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble' + (data.found ? '' : ' not-found');
+  bubble.innerHTML = renderMarkdown(data.answer);
+
+  if (data.found && data.policy) {
+    const tag = document.createElement('div');
+    tag.className = 'policy-tag';
+    tag.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>依据：${escHtml(data.policy)}`;
+    bubble.appendChild(tag);
+  }
+
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = now();
+
+  content.appendChild(bubble);
+  content.appendChild(time);
+  row.appendChild(avatar);
+  row.appendChild(content);
+  msgs.appendChild(row);
+  scrollBottom();
+}
+
+function appendTyping() {
+  const msgs = document.getElementById('messages');
+  const id = 'typing-' + Date.now();
+  const row = document.createElement('div');
+  row.className = 'msg-row bot';
+  row.id = id;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = '✦';
+
+  const content = document.createElement('div');
+  content.className = 'msg-content';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  content.appendChild(bubble);
+  row.appendChild(avatar);
+  row.appendChild(content);
+  msgs.appendChild(row);
+  scrollBottom();
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+// ── 工具函数 ─────────────────────────────────────────
+function scrollBottom() {
+  const msgs = document.getElementById('messages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function now() {
+  return new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// 极简 markdown 渲染（粗体、引用块、换行）
+function renderMarkdown(text) {
+  let html = escHtml(text);
+  // blockquote: > ...
+  html = html.replace(/^&gt;\s?(.+)$/gm, '<blockquote>$1</blockquote>');
+  // bold: **...**
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // newline
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+// 自适应高度
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ── 事件绑定 ─────────────────────────────────────────
+document.getElementById('inputBox').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+document.getElementById('inputBox').addEventListener('input', function() {
+  autoResize(this);
+});
+
+// 启动
+init();
+</script>
+</body>
+</html>

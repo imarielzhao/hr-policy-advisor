@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI员工政策顾问</title>
+<style>
+:root {
+  --primary: #1a56db; --primary-light: #e8f0fe; --bg: #f5f7fa;
+  --card-bg: #ffffff; --text: #1f2937; --text-secondary: #6b7280;
+  --border: #e5e7eb; --success: #059669; --warning: #d97706;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --radius: 12px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;
+  background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;
+}
+.header{
+  background:var(--card-bg);border-bottom:1px solid var(--border);
+  padding:12px 20px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);z-index:10;
+}
+.header .logo{width:34px;height:34px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0}
+.header h1{font-size:17px;font-weight:600}
+.header .badge{margin-left:auto;font-size:11px;background:var(--primary-light);color:var(--primary);padding:4px 10px;border-radius:20px;font-weight:500}
+.main{display:flex;flex:1;overflow:hidden}
+.sidebar{
+  width:240px;background:var(--card-bg);border-right:1px solid var(--border);
+  padding:16px 12px;overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;gap:14px;
+}
+.sidebar h3{font-size:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.cat-item{
+  padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;
+  color:var(--text);transition:background .2s;display:flex;align-items:center;gap:6px;
+}
+.cat-item:hover{background:var(--primary-light)}
+.cat-item .dot{width:5px;height:5px;border-radius:50%;background:var(--primary);flex-shrink:0}
+.quick-q{
+  padding:7px 10px;border-radius:6px;cursor:pointer;font-size:12px;
+  color:var(--text-secondary);background:var(--bg);border:1px solid var(--border);
+  transition:all .2s;
+}
+.quick-q:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
+.sidebar-footer{margin-top:auto;font-size:11px;color:var(--text-secondary);text-align:center;padding-top:10px;border-top:1px solid var(--border)}
+.chat-area{flex:1;display:flex;flex-direction:column;background:var(--bg)}
+.messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.msg{display:flex;gap:8px;max-width:82%;animation:slideIn .25s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end;flex-direction:row-reverse}
+.msg.bot{align-self:flex-start}
+.avatar{
+  width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:15px;flex-shrink:0;font-weight:600;
+}
+.msg.user .avatar{background:var(--primary);color:#fff}
+.msg.bot .avatar{background:var(--primary-light);color:var(--primary)}
+.bubble{padding:10px 14px;border-radius:var(--radius);line-height:1.6;font-size:13px}
+.msg.user .bubble{background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.msg.bot .bubble{background:#f3f4f6;color:var(--text);border-bottom-left-radius:4px;border:1px solid var(--border)}
+.msg.bot .bubble.not-found{border-color:var(--warning);background:#fffbeb}
+.policy-cite{display:inline-block;margin-top:6px;font-size:11px;padding:3px 7px;border-radius:4px;background:#eef2ff;color:var(--primary);font-weight:500}
+.cat-tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:3px;background:#f0fdf4;color:var(--success);margin-right:4px}
+.nf-hint{margin-top:6px;font-size:11px;color:var(--warning);font-weight:500}
+.input-area{padding:14px 20px;background:var(--card-bg);border-top:1px solid var(--border);display:flex;gap:10px;align-items:flex-end}
+.input-wrapper{flex:1}
+.input-wrapper textarea{
+  width:100%;min-height:44px;max-height:110px;padding:10px 14px;
+  border:1.5px solid var(--border);border-radius:var(--radius);
+  font-size:13px;font-family:inherit;resize:none;outline:none;
+  transition:border-color .2s;line-height:1.5;
+}
+.input-wrapper textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,86,219,0.08)}
+.send-btn{
+  width:44px;height:44px;border-radius:var(--radius);background:var(--primary);
+  color:#fff;border:none;cursor:pointer;font-size:16px;display:flex;
+  align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;
+}
+.send-btn:hover{background:#1e40af}
+.send-btn:disabled{background:#9ca3af;cursor:not-allowed}
+.typing{display:flex;gap:3px;padding:4px 0}
+.typing span{width:5px;height:5px;border-radius:50%;background:var(--text-secondary);animation:bounce 1.4s infinite ease-in-out}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:scale(.6)}40%{transform:scale(1)}}
+.clickable-link{color:var(--primary);cursor:pointer;text-decoration:underline}
+@media(max-width:768px){.sidebar{display:none}.msg{max-width:90%}.messages{padding:14px}}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">📋</div>
+  <h1>AI员工政策顾问</h1>
+  <span class="badge">Demo v1.0</span>
+</header>
+
+<div class="main">
+  <aside class="sidebar">
+    <div>
+      <h3>📂 政策分类</h3>
+      <div id="catList"></div>
+    </div>
+    <div>
+      <h3>💡 快捷提问</h3>
+      <div id="quickQs"></div>
+    </div>
+    <div class="sidebar-footer">知识库共 <strong id="kbCount">25</strong> 条政策</div>
+  </aside>
+
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="msg bot">
+        <div class="avatar">🤖</div>
+        <div class="bubble">
+          <p>你好！我是 AI 员工政策顾问，可以帮你解答公司 HR 政策相关问题。</p>
+          <p style="margin-top:6px">你可以问我关于 <strong>考勤、休假、薪酬福利、绩效、培训、劳动合同</strong> 等方面的问题。</p>
+          <p style="margin-top:4px;color:var(--text-secondary);font-size:11px">提示：直接输入问题即可，我会基于员工手册为您查找答案。知识库未收录的问题会提示联系HR。</p>
+        </div>
+      </div>
+    </div>
+    <div class="input-area">
+      <div class="input-wrapper">
+        <textarea id="qInput" placeholder="请输入您的HR政策问题，例如：年假怎么计算？" rows="1" maxlength="200"></textarea>
+      </div>
+      <button class="send-btn" id="sendBtn" title="发送">➤</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// 知识库 (内嵌员工手册)
+// ══════════════════════════════════════
+const KNOWLEDGE = [
+  {id:1,cat:"考勤管理",policy:"《员工手册》第五章 5.1 工作时间",q:"公司的上班时间是什么？",kw:["上班时间", "工作时间", "几点上班", "几点下班", "作息时间"],a:"公司实行标准工时制，工作日为周一至周五。上班时间为上午 9:30，下班时间为下午 18:00，午休时间为 12:00-13:00（1小时）。支持标准打卡、弹性上班（确保8小时）、远程办公（每周最多3天）和外勤打卡四种考勤方式。"},
+  {id:2,cat:"考勤管理",policy:"《员工手册》第五章 5.2 迟到处理",q:"迟到会怎么处理？",kw:["迟到", "早退", "扣钱", "迟到扣款", "考勤处罚"],a:"迟到处理规则：每月前5次迟到不扣款；第6次起每次扣30元。迟到10-30分钟扣30元/次；30分钟至1小时按半天旷工处理；1小时以上按全天旷工处理。"},
+  {id:3,cat:"考勤管理",policy:"《员工手册》第五章 5.3 加班补偿",q:"加班费怎么算？加班有什么补偿？",kw:["加班费", "加班工资", "加班", "加班补偿", "节假日加班", "周末加班", "值班"],a:"加班补偿标准：工作日延长加班按1.5倍时薪计算（优先调休）；周六加班按2倍时薪计算（优先调休）；法定节假日加班按3倍时薪计算（必须支付，不可调休替代）。值班补贴为100元/次。加班须提前申请并经审批，未经审批的加班不予认可。"},
+  {id:4,cat:"休假管理",policy:"《员工手册》第五章 5.4 年假",q:"年假有多少天？怎么计算的？",kw:["年假", "年休假", "带薪休假", "年假天数", "工龄", "年假上限"],a:"年假天数按累计工作年限计算：工龄不满1年的，按月折算（0.42天/月，最多5天）；1-10年每年10天；10-20年每年15天；20年以上每年20天。年假须在当年12月31日前使用完毕。"},
+  {id:5,cat:"休假管理",policy:"《员工手册》第五章 5.5 病假",q:"病假工资怎么算？",kw:["病假", "生病", "病假工资", "医疗期", "病假条"],a:"病假工资按以下标准发放：病假1个月以内发100%工资；1-3个月发80%工资；3-6个月发60%工资；超过6个月停止发放，长期病假另行协商。请病假需提供二级以上医院开具的病假证明。"},
+  {id:6,cat:"休假管理",policy:"《员工手册》第五章 假期表",q:"婚假有多少天？",kw:["婚假", "结婚", "婚假天数", "婚假申请", "结婚证"],a:"员工享受3天法定婚假（V4.0版已取消晚婚假）。申请婚假需提供结婚证复印件，通过OA系统提交申请。"},
+  {id:7,cat:"休假管理",policy:"《员工手册》第五章 假期表",q:"产假和陪产假有多少天？",kw:["产假", "陪产假", "生育", "育儿假", "产检"],a:"女职工产假为98天加奖励假；男职工享受15天带薪陪产假，需在子女出生后3个月内申请，通过OA系统提交出生证明。"},
+  {id:8,cat:"休假管理",policy:"《员工手册》第五章 假期表",q:"公司有哪些特色假期？",kw:["特色假期", "生日假", "司龄假", "远程健康假", "警醒假", "全员智能日"],a:"除法定假期外，公司提供以下特色假期：生日假（1天带薪，当月内使用）；司龄假（每满1年加1天，最高叠加3天，可叠加年假使用）；远程健康假（2天/季度，激励工作生活平衡）；警醒假（1天/季度，AI系统推送，不安排会议）；全员智能日（3天/年，HR统一安排，全员参与探索AI工具）。"},
+  {id:9,cat:"休假管理",policy:"《员工手册》第五章 假期表",q:"怎么请假？请假流程是什么？",kw:["请假", "请假流程", "怎么请假", "请假申请", "审批"],a:"员工请假需通过OA系统提交请假申请。1天以内由直属主管审批；1-3天需部门负责人审批；3天以上需HR总监审批。紧急情况可先电话沟通，事后3个工作日内补交申请。年假、病假、婚假、产假等均通过OA系统申请。"},
+  {id:10,cat:"薪酬福利",policy:"《员工手册》第四章 4.1 薪酬结构",q:"工资什么时候发？薪酬由哪些部分组成？",kw:["发工资", "工资发放", "几号发", "薪资发放", "工资构成", "工资结构", "薪酬组成"],a:"每月15日发放上月薪资。薪酬组成包括：基本工资（固定月薪）、岗位补贴（按岗位级别）、绩效奖金（系数×奖金基数，季度末发）、餐补（按出勤天数）、交通补贴（按职级）、通话补贴（100元/月，V4.0新增）、智能升级补贴（1000元/年，V4.0新增）、年终奖（月薪×系数，次年前发）、AI贡献奖（半年评发）。"},
+  {id:11,cat:"薪酬福利",policy:"《员工手册》第四章 4.2 五险一金",q:"五险一金是怎么交的？缴纳比例是多少？",kw:["社保", "公积金", "五险一金", "缴纳", "比例", "基数", "养老保险", "医疗保险"],a:"公司按国家规定为员工缴纳五险一金。缴纳比例为：养老保险（个人8%/公司16%）、医疗保险（个人2%+3元/公司9%，含大病）、失业保险（个人0.5%/公司0.5%）、工伤保险（公司0.4%-1.9%）、生育保险（公司0.8%）。公积金缴纳比例按地方政策执行。"},
+  {id:12,cat:"薪酬福利",policy:"《员工手册》第四章 4.3 员工福利",q:"公司有哪些福利？",kw:["福利", "待遇", "补贴", "体检", "健康"],a:"公司为正式员工提供以下福利：五险一金、年度健康体检（初级800元/中级1200元/高级2000元）、补充商业保险、节日礼品、生日假1天、司龄假（最高+3天）、远程健康假（2天/季度）、警醒假（1天/季度）、智能升级补贴（1000元/年）、AI贡献奖、员工慷惹计划（专业心理师辅导）、家属关怀福利（生育保障、婚礼福利）。"},
+  {id:13,cat:"绩效管理",policy:"《员工手册》第八章 8.1-8.2 绩效考核",q:"绩效考核是怎么做的？等级和系数是什么？",kw:["绩效", "考核", "KPI", "评级", "评估", "绩效等级", "绩效系数"],a:"公司实行月度+季度+年度三级考核体系。月度考核关注当月工作完成情况；季度考核评估目标完成度、工作质量和AI协作能力；年度考核综合全年目标达成、智能贡献和成长潜力。绩效等级分为：S（卓越，3%，系数2.5）、A（优秀，10%，系数1.8）、B（良好，70%，系数1.0）、C（需改进，12%，系数0.5）、D（不合格，5%，系数0）。连续两个季度D将启动PIP（绩效改进计划），连续三个季度D将解除劳动合同。"},
+  {id:14,cat:"绩效管理",policy:"《员工手册》第四章 4.1 薪酬结构",q:"年终奖和AI贡献奖怎么发？",kw:["年终奖", "奖金", "年底", "AI贡献奖", "年终", "智能贡献"],a:"年终奖按「月薪×绩效系数」计算，于次年前发放。AI贡献奖每半年度通过OA系统评估员工的AI智能工作产出效益，绩效达到B级以上且AI工具应用指标达标即可申请。公司每季度公布各部门'智能星星'榜单，补贴资源与年终奖金挂钩。"},
+  {id:15,cat:"培训发展",policy:"《员工手册》第七章 7.1-7.2 培训与发展",q:"公司提供哪些培训？培训经费是多少？",kw:["培训", "学习", "课程", "培训体系", "培训经费", "入职培训"],a:"新员工入职培训包含7大模块共10.5小时：公司介绍（2h）、企业文化（1.5h）、规章制度（2h，需测试≥80分）、IT系统操作（2h实操）、AI智能工具入门（2h实操+小测）、安全合规（1h，测试≥80分）、部门带教（2-3天）。年度培训经费：初级4000元/年、中级5000元/年、高级6000元/年。公司每季度组织AI智能工具应用特训，全员免费参加。"},
+  {id:16,cat:"培训发展",policy:"《员工手册》第七章 7.2 职业发展双通道",q:"晋升通道是怎样的？",kw:["晋升", "升职", "涨薪", "调薪", "职级", "发展通道", "管理序列", "技术序列"],a:"公司提供职业发展双通道：管理序列（M序列）M1组长/主管→M2经理→M3高级经理→M4总监→M5+VP/副总裁；专业技术序列（T序列）T1初级专员→T2高级专员→T3专家→T4资深专家→T5 Fellow。员工可根据自身优势选择管理或技术路线发展。"},
+  {id:17,cat:"行为规范",policy:"《员工手册》第二章 2.2 行为准则",q:"AI工具使用有什么规定？",kw:["AI工具", "AI使用", "人工智能", "ChatGPT", "AI规范", "AI标注"],a:"AI智能工具使用规范（V4.0重点强化）：①输出必须经过人工核检——对外数据、客户资料、签署文件等不得直接使用AI未经核实的内容；②不得将公司机密输入公共AI平台；③AI生成内容必须标注来源，对外发布时需标注'AI辅助创作'或经人工审核；④公司每季度组织AI智能工具应用特训，全员免费参加；⑤全员智能日：每年指定一天，全员探索新AI工具和方法，学习时间全程带薪。"},
+  {id:18,cat:"行为规范",policy:"《员工手册》第二章 2.3 禁止行为与违规处理",q:"公司有哪些禁止行为？违规怎么处理？",kw:["禁止行为", "违规", "处分", "开除", "警告", "商业贿赂", "利益冲突"],a:"禁止行为包括：商业贿赂（不得收受回扣、礼金、贵重礼品单次价值超500元）、利益冲突（不得利用职务为亲属谋利）、虚假报销、泄露机密。违规分为三级：严重违规（一级，如贪污受贿、故意泄密）立即解除劳动合同；重大违规（二级，如连续旷工3天以上、擅自删除数据）书面警告或解除；一般违规（三级，如无故迟到早退、传播谣言）口头警告至书面警告。所有处分均有申诉权，可在5个工作日内通过OA系统提交申诉。"},
+  {id:19,cat:"行为规范",policy:"《员工手册》第二章 2.2.3 团队协作规范",q:"团队协作和会议有什么规范？",kw:["会议", "协作", "团队", "交接", "会议纪要", "信息同步"],a:"团队协作规范：①信息同步——项目重要进展在群里及时通报，关键决策形成书面记录；②会议效率——提前准备材料，控制发言时间，会后1小时内发出会议纪要；③交接规范——工作交接需形成书面文档，不接受口头交接。"},
+  {id:20,cat:"入职指南",policy:"《员工手册》第三章 3.4 试用期",q:"试用期多久？试用期薪资多少？怎么转正？",kw:["试用期", "试用", "转正", "试用工资", "入职", "试用期薪资", "转正流程"],a:"试用期时长1-6个月，根据岗位确定。试用期薪资不低于正式薪资的85%（V4.0从80%上调至85%），且不低于本市最低工资标准。转正流程：直属主管发起转正评估→HR审核→办理转正确认，薪资调整自转正当月生效。试用期期间正常缴纳五险一金。"},
+  {id:21,cat:"入职指南",policy:"《员工手册》第三章 3.3 劳动合同签署",q:"劳动合同怎么签的？",kw:["劳动合同", "签合同", "电子签", "合同签署", "入职手续"],a:"劳动合同通过电子签平台在线签署。入职前3个工作日，系统向手机号发送签署短信/邮件通知，须在规定时间内完成实名认证并在线签署，超期链接将失效。签署后可在平台永久查看和下载电子合同原件。"},
+  {id:22,cat:"入职指南",policy:"《员工手册》第三章 3.5 智能导师制度",q:"入职后有导师吗？智能导师是做什么的？",kw:["导师", "智能导师", "入职指导", "带教", "新员工"],a:"公司实行智能导师制度（V4.0从'导师'升级为'智能导师'）。入职前3个工作日通知导师姓名及联系方式。导师职责包括：帮助新员工熟悉工作、解答疑惑、协助融入团队，并引导学习AI工具应用。导师在试用期内全程陪伴，转正后仍可随时咨询。"},
+  {id:23,cat:"入职指南",policy:"《员工手册》第三章 3.1-3.2 入职流程",q:"入职需要准备什么材料？流程是什么？",kw:["入职", "入职材料", "报到", "入职流程", "准备材料"],a:"入职流程共7步：①确认入职日期→②完成入职前体检并上传报告→③准备入职材料按时报到→④办理入职登记，签署劳动合同→⑤领取设备、工牌，开通系统账号→⑥参加入职培训（共10.5小时）→⑦部门报到，认识团队，开始试用期。入职材料包括：身份证原件+复印件2份、学历学位证书原件+复印件1份、一寸蓝底免冠照片4张、银行卡（发薪账户）、3个月内有效体检报告。"},
+  {id:24,cat:"离职管理",policy:"《员工手册》第九章 9.1-9.3 离职",q:"离职需要提前多久通知？流程是什么？",kw:["辞职", "离职", "提前通知", "辞职流程", "交接", "离职证明"],a:"正式员工需提前30天通过OA系统提交书面《离职申请表》；试用期员工需提前3天提出。离职流程共9步：提交申请→主管面谈→批准后工作交接→填写《工作交接清单》→归还公司财物（工牌、设备）→IT注销账号→HR办理社保公积金减员→开具《离职证明》→最后一个工作日结算（含未休年假折算）。离职后保密义务长期有效（3-5年），部分岗位签有竞业限制协议。"},
+  {id:25,cat:"离职管理",policy:"《员工手册》第九章 9.1.2 被动离职",q:"合同到期不续签或被辞退有补偿吗？",kw:["合同到期", "不续签", "补偿", "赔偿", "辞退", "经济补偿金", "被动离职"],a:"合同到期公司不续签的，提前30天通知并支付经济补偿金。协商一致解除的，公司支付经济补偿金。员工严重违反公司制度（如贪污受贿、故意泄密等），公司可立即解除劳动合同且不支付补偿。如签有竞业限制协议，公司支付竞业限制补偿；若公司连续3个月未支付补偿，员工可书面通知解除竞业义务。"},
+  {id:26,cat:"健康关怀",policy:"《员工手册》第十章 10.1-10.4 员工健康与关怀",q:"公司有什么健康关怀和补贴？",kw:["健康", "体检", "关怀", "心理", "补贴", "智能升级补贴", "家属福利"],a:"V4.0全新健康关怀体系包括：①健康体检（初级800元/中级1200元/高级2000元/年，可选合作医院）；②员工慷惹计划（专业心理师辅导，全员年度健康活动）；③智能升级补贴（1000元/人/年，每年3月开放申请，需提交学习证明如在线课程、会员资格等）；④家属关怀福利（生育保障、婚礼福利按工龄和职级确定）。"},
+  {id:27,cat:"AI数字化",policy:"《员工手册》第六章 6.1-6.4 AI数字化工作规范",q:"公司对AI数字化工作有什么要求？",kw:["AI数字员工", "AI协作", "智能化", "数字员工", "AI贡献", "智能星星"],a:"AI数字化工作四大原则：①智能超越——AI是助手而非替代者；②人机协作——人做AI做不了的事，AI做人做不了的事；③输出负责——任何AI生成的对外输出由提交者和审核者负责；④学习持续——员工持续提升AI应用能力。敏感业务步骤不得绕过人工审批。公司每半年度评估AI工作产出效益，季度公布'智能星星'榜单，与年终奖金挂钩。"},
+  {id:28,cat:"行为规范",policy:"《员工手册》第一章 1.4 核心价值观",q:"公司的核心价值观是什么？",kw:["价值观", "企业文化", "核心价值", "使命", "愿景"],a:"星辰科技六大核心价值观：①客户至上——主动了解客户隐性需求，紧急问题2小时响应、普通问题当天回复、常规需求24小时回复；②AI协作——拥抱AI工具，每季度至少尝试一种新AI功能；③协作共赢——主动补位、清晰界定职责、共享成功；④诚信敬业——如实汇报、专注工作、守时保密；⑤追求卓越——交付前自查、项目后复盘、主动承担；⑥全员智能化（V4.0新增）——每位员工都是智能化共建者，每季度至少提交一项智能化改善建议，被采纳获'智能星星'奖励。"}
+];
+
+// ══════════════════════════════════════
+// 轻量级中文相似度匹配引擎
+// ══════════════════════════════════════
+function buildIndex() {
+  // 对每条知识构建搜索索引
+  return KNOWLEDGE.map(item => {
+    const text = item.q + ' ' + (item.kw||[]).join(' ') + ' ' + item.cat;
+    return { text, item };
+  });
+}
+
+function segmentChinese(str) {
+  // 简单的中文分词: 字符bigram + 关键词提取
+  const cleaned = str.toLowerCase().replace(/[？?！!，,。.、\s]+/g, ' ').trim();
+  const chars = cleaned.replace(/\s+/g, '');
+  const bigrams = [];
+  for (let i = 0; i < chars.length - 1; i++) {
+    bigrams.push(chars[i] + chars[i+1]);
+  }
+  // 同时按空格分词（处理中文中夹杂的英文/数字）
+  const words = cleaned.split(/\s+/).filter(w => w.length > 0);
+  return [...new Set([...bigrams, ...words, ...chars])];
+}
+
+function computeScore(queryTokens, idxText, kws) {
+  const idxTokens = segmentChinese(idxText);
+  const tokenSet = new Set(idxTokens);
+
+  // 1. Token overlap score
+  let overlap = 0;
+  for (const t of queryTokens) {
+    if (tokenSet.has(t)) overlap++;
+  }
+  const overlapScore = queryTokens.length > 0 ? overlap / Math.max(queryTokens.length, 1) : 0;
+
+  // 2. Keyword match bonus
+  let kwMatch = 0;
+  const qLower = queryTokens.join('');
+  for (const kw of (kws || [])) {
+    if (qLower.includes(kw.toLowerCase())) kwMatch++;
+  }
+  const kwScore = kws.length > 0 ? kwMatch / kws.length : 0;
+
+  // 3. Direct question substring match
+  let substrScore = 0;
+  const rawQ = queryTokens.join('');
+  if (idxText.includes(rawQ) && rawQ.length >= 2) {
+    substrScore = 0.5;
+  }
+
+  return overlapScore * 0.4 + kwScore * 0.45 + substrScore * 0.15;
+}
+
+const SIMILARITY_THRESHOLD = 0.12;
+const INDEX = buildIndex();
+
+function findAnswer(question) {
+  if (!question || !question.trim()) {
+    return { found: false, answer: '请描述您的HR政策问题，我会尽力为您解答。', policy: '', cat: '', score: 0 };
+  }
+  const tokens = segmentChinese(question);
+  let best = { idx: -1, score: 0 };
+
+  for (let i = 0; i < INDEX.length; i++) {
+    const score = computeScore(tokens, INDEX[i].text, INDEX[i].item.kw);
+    if (score > best.score) {
+      best = { idx: i, score };
+    }
+  }
+
+  if (best.idx >= 0 && best.score >= SIMILARITY_THRESHOLD) {
+    const item = INDEX[best.idx].item;
+    return { found: true, answer: item.a, policy: item.policy, cat: item.cat, score: best.score };
+  }
+  return { found: false, answer: '该问题暂未收录，请联系HR进一步确认。', policy: '', cat: '', score: best.score };
+}
+
+// ══════════════════════════════════════
+// UI Logic
+// ══════════════════════════════════════
+const messagesEl = document.getElementById('messages');
+const qInput = document.getElementById('qInput');
+const sendBtn = document.getElementById('sendBtn');
+let processing = false;
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function addMsg(role, content, policy, cat, found) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  let bubbleClass = 'bubble';
+  if (role === 'bot' && found === false) bubbleClass += ' not-found';
+
+  let html = '';
+  if (role === 'user') {
+    html = `<div class="avatar">👤</div><div class="${bubbleClass}">${content}</div>`;
+  } else {
+    html = `<div class="avatar">🤖</div><div class="${bubbleClass}">`;
+    if (cat) html += `<span class="cat-tag">📁 ${esc(cat)}</span>`;
+    html += content;
+    if (policy) html += `<br><span class="policy-cite">📄 ${esc(policy)}</span>`;
+    if (found === false && !policy) {
+      html += `<br><span class="nf-hint">💡 ${esc(content)}</span>`;
+    }
+    html += `</div>`;
+  }
+  div.innerHTML = html;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addTyping() {
+  const d = document.createElement('div');
+  d.className = 'msg bot';
+  d.id = 'typing';
+  d.innerHTML = `<div class="avatar">🤖</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  messagesEl.appendChild(d);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function removeTyping() {
+  const e = document.getElementById('typing');
+  if (e) e.remove();
+}
+
+async function send(q) {
+  if (processing) return;
+  const question = q.trim();
+  if (!question || question.length > 200) return;
+
+  processing = true;
+  sendBtn.disabled = true;
+  qInput.value = '';
+  qInput.style.height = 'auto';
+
+  addMsg('user', esc(question));
+  addTyping();
+
+  // 模拟异步(保持UI流畅)
+  await new Promise(r => setTimeout(r, 300 + Math.random() * 400));
+
+  const result = findAnswer(question);
+  removeTyping();
+  addMsg('bot', esc(result.answer), result.policy, result.cat, result.found);
+
+  processing = false;
+  sendBtn.disabled = false;
+  qInput.focus();
+}
+
+// ══════════════════════════════════════
+// Init
+// ══════════════════════════════════════
+function init() {
+  // 分类列表
+  const cats = [...new Set(KNOWLEDGE.map(k => k.cat))].sort();
+  document.getElementById('catList').innerHTML = cats.map(c =>
+    `<div class="cat-item" data-cat="${esc(c)}"><span class="dot"></span>${esc(c)}</div>`
+  ).join('');
+
+  // 点击分类显示问题列表
+  document.getElementById('catList').addEventListener('click', e => {
+    const el = e.target.closest('.cat-item');
+    if (!el) return;
+    const cat = el.dataset.cat;
+    const qs = KNOWLEDGE.filter(k => k.cat === cat);
+    addMsg('bot',
+      `📂 <strong>${esc(cat)}</strong> 相关政策问题：<br>` +
+      qs.slice(0, 4).map(k =>
+        `· <span class="clickable-link" data-q="${esc(k.q)}">${esc(k.q)}</span> <span style="font-size:10px;color:var(--text-secondary)">(${esc(k.policy)})</span>`
+      ).join('<br>')
+    );
+    bindLinks();
+  });
+
+  // 快捷提问
+  const quickQs = ['年假有多少天？','加班费怎么算？','试用期多久？','离职需要提前多久通知？','公司有哪些福利？'];
+  document.getElementById('quickQs').innerHTML = quickQs.map(q =>
+    `<div class="quick-q" data-q="${esc(q)}">${esc(q)}</div>`
+  ).join('');
+
+  document.getElementById('quickQs').addEventListener('click', e => {
+    const el = e.target.closest('.quick-q');
+    if (el) send(el.dataset.q);
+  });
+
+  // 绑定可点击链接
+  function bindLinks() {
+    document.querySelectorAll('.clickable-link').forEach(el => {
+      el.addEventListener('click', () => send(el.dataset.q));
+    });
+  }
+
+  // 发送按钮
+  sendBtn.addEventListener('click', () => send(qInput.value));
+
+  // 回车发送
+  qInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send(qInput.value);
+    }
+  });
+
+  // 自适应高度
+  qInput.addEventListener('input', () => {
+    qInput.style.height = 'auto';
+    qInput.style.height = Math.min(qInput.scrollHeight, 110) + 'px';
+  });
+
+  qInput.focus();
+}
+
+init();
+</script>
+</body>
+</html>
